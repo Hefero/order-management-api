@@ -8,10 +8,11 @@ const { sequelize, Order, Item } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = 'sua_chave_secreta_aqui'; // Em produção, use variáveis de ambiente
+const SECRET_KEY = process.env.JWT_SECRET || 'sua_chave_secreta_muito_segura';
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static('public'));
 
 // Configuração do Swagger
 const swaggerOptions = {
@@ -19,12 +20,17 @@ const swaggerOptions = {
     openapi: '3.0.0',
     info: {
       title: 'Order Management API',
-      version: '1.0.0',
-      description: 'API para gerenciamento de pedidos com mapeamento de dados e banco de dados SQL',
+      version: '1.1.0',
+      description: 'API robusta para gerenciamento de pedidos com mapeamento de dados, autenticação JWT e banco de dados SQL.',
+      contact: {
+        name: 'Suporte API',
+        email: 'suporte@exemplo.com'
+      }
     },
     servers: [
       {
         url: `http://localhost:${PORT}`,
+        description: 'Servidor Local'
       },
     ],
     components: {
@@ -35,6 +41,37 @@ const swaggerOptions = {
           bearerFormat: 'JWT',
         },
       },
+      schemas: {
+        OrderInput: {
+          type: 'object',
+          required: ['numeroPedido', 'valorTotal', 'dataCriacao', 'items'],
+          properties: {
+            numeroPedido: { type: 'string', example: 'v10089015vdb-01' },
+            valorTotal: { type: 'number', example: 10000 },
+            dataCriacao: { type: 'string', format: 'date-time', example: '2023-07-19T12:24:11.529Z' },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['idItem', 'quantidadeItem', 'valorItem'],
+                properties: {
+                  idItem: { type: 'string', example: '2434' },
+                  quantidadeItem: { type: 'integer', example: 1 },
+                  valorItem: { type: 'number', example: 1000 }
+                }
+              }
+            }
+          }
+        },
+        Error: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            message: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
     },
   },
   apis: ['./index.js'],
@@ -50,8 +87,8 @@ const authenticateToken = (req, res, next) => {
 
   if (!token) {
     return res.status(401).json({ 
-      error: 'Acesso negado', 
-      message: 'Token de autenticação não fornecido. Por favor, faça login para obter um token.' 
+      error: 'Não autorizado', 
+      message: 'Token de autenticação ausente. Por favor, realize o login para obter acesso.' 
     });
   }
 
@@ -59,7 +96,7 @@ const authenticateToken = (req, res, next) => {
     if (err) {
       return res.status(403).json({ 
         error: 'Acesso proibido', 
-        message: 'Token inválido ou expirado. Por favor, faça login novamente.' 
+        message: 'O token fornecido é inválido ou expirou. Por favor, faça login novamente.' 
       });
     }
     req.user = user;
@@ -67,46 +104,61 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Endpoint para gerar token (Simulação de Login)
-/**
- * @swagger
- * /login:
- *   post:
- *     summary: Gera um token JWT para autenticação
- *     responses:
- *       200:
- *         description: Token gerado com sucesso
- */
-app.post('/login', (req, res) => {
-  // Simulação de autenticação de usuário
-  const user = { id: 1, username: 'admin' };
-  const token = jwt.sign(user, SECRET_KEY, { expiresIn: '1h' });
-  res.json({ token });
-});
-
 // Função de mapeamento para transformar o JSON de entrada no formato do banco (Data Transformation)
 const mapOrderInput = (data) => {
   if (!data.numeroPedido || !data.items || !Array.isArray(data.items)) {
-    throw new Error('Dados de entrada inválidos: numeroPedido e items (array) são obrigatórios.');
+    throw new Error('Dados de entrada incompletos: numeroPedido e items são obrigatórios.');
   }
 
   return {
     orderId: data.numeroPedido,
     value: data.valorTotal,
     creationDate: new Date(data.dataCriacao).toISOString(),
-    items: data.items.map(item => ({
-      productId: parseInt(item.idItem),
-      quantity: item.quantidadeItem,
-      price: item.valorItem
-    }))
+    items: data.items.map(item => {
+      if (!item.idItem || item.quantidadeItem === undefined || item.valorItem === undefined) {
+        throw new Error('Cada item deve conter idItem, quantidadeItem e valorItem.');
+      }
+      return {
+        productId: parseInt(item.idItem),
+        quantity: item.quantidadeItem,
+        price: item.valorItem
+      };
+    })
   };
 };
 
 /**
  * @swagger
+ * /login:
+ *   post:
+ *     summary: Gera um token JWT para autenticação
+ *     tags: [Autenticação]
+ *     responses:
+ *       200:
+ *         description: Token gerado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token: { type: 'string' }
+ */
+app.post('/login', (req, res) => {
+  try {
+    const user = { id: 1, username: 'admin' };
+    const token = jwt.sign(user, SECRET_KEY, { expiresIn: '2h' });
+    res.status(200).json({ token });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro interno', message: 'Não foi possível gerar o token de acesso.' });
+  }
+});
+
+/**
+ * @swagger
  * /order:
  *   post:
- *     summary: Cria um novo pedido (Mapeamento de Dados)
+ *     summary: Cria um novo pedido com mapeamento de dados
+ *     tags: [Pedidos]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -114,34 +166,30 @@ const mapOrderInput = (data) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               numeroPedido:
- *                 type: string
- *               valorTotal:
- *                 type: number
- *               dataCriacao:
- *                 type: string
- *               items:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     idItem:
- *                       type: string
- *                     quantidadeItem:
- *                       type: number
- *                     valorItem:
- *                       type: number
+ *             $ref: '#/components/schemas/OrderInput'
  *     responses:
  *       201:
  *         description: Pedido criado com sucesso
+ *       400:
+ *         description: Dados de entrada inválidos
+ *       401:
+ *         description: Não autorizado
  */
 app.post('/order', authenticateToken, async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const mappedData = mapOrderInput(req.body);
     
+    // Verificar se o pedido já existe
+    const existingOrder = await Order.findByPk(mappedData.orderId);
+    if (existingOrder) {
+      await transaction.rollback();
+      return res.status(409).json({ 
+        error: 'Conflito', 
+        message: `Já existe um pedido com o número ${mappedData.orderId}.` 
+      });
+    }
+
     const order = await Order.create({
       orderId: mappedData.orderId,
       value: mappedData.value,
@@ -159,15 +207,59 @@ app.post('/order', authenticateToken, async (req, res) => {
     
     res.status(201).json({
       message: 'Pedido criado com sucesso',
-      order: {
-        ...order.toJSON(),
-        items
-      }
+      order: { ...order.toJSON(), items }
     });
   } catch (error) {
     if (transaction) await transaction.rollback();
     res.status(400).json({ 
-      error: 'Erro na criação do pedido', 
+      error: 'Erro de validação', 
+      message: 'Os dados fornecidos são inválidos.',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /order/list:
+ *   get:
+ *     summary: Lista todos os pedidos com paginação
+ *     tags: [Pedidos]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: 'integer', default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: 'integer', default: 10 }
+ *     responses:
+ *       200:
+ *         description: Lista de pedidos retornada com sucesso
+ */
+app.get('/order/list', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Order.findAndCountAll({
+      include: [{ model: Item, as: 'items' }],
+      limit,
+      offset,
+      distinct: true,
+      order: [['creationDate', 'DESC']]
+    });
+
+    res.status(200).json({
+      total: count,
+      pages: Math.ceil(count / limit),
+      currentPage: page,
+      orders: rows
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Erro interno', 
+      message: 'Ocorreu um erro ao listar os pedidos.',
       details: error.message 
     });
   }
@@ -177,16 +269,16 @@ app.post('/order', authenticateToken, async (req, res) => {
  * @swagger
  * /order/{orderId}:
  *   get:
- *     summary: Obtém os dados de um pedido pelo ID
+ *     summary: Obtém os detalhes de um pedido específico
+ *     tags: [Pedidos]
  *     parameters:
  *       - in: path
  *         name: orderId
  *         required: true
- *         schema:
- *           type: string
+ *         schema: { type: 'string' }
  *     responses:
  *       200:
- *         description: Dados do pedido
+ *         description: Detalhes do pedido
  *       404:
  *         description: Pedido não encontrado
  */
@@ -198,32 +290,19 @@ app.get('/order/:orderId', async (req, res) => {
     });
 
     if (!order) {
-      return res.status(404).json({ error: 'Pedido não encontrado' });
+      return res.status(404).json({ 
+        error: 'Não encontrado', 
+        message: `O pedido com o número ${req.params.orderId} não foi localizado.` 
+      });
     }
 
-    res.json(order);
+    res.status(200).json(order);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao buscar pedido', details: error.message });
-  }
-});
-
-/**
- * @swagger
- * /order/list:
- *   get:
- *     summary: Lista todos os pedidos
- *     responses:
- *       200:
- *         description: Lista de pedidos
- */
-app.get('/order/list', async (req, res) => {
-  try {
-    const orders = await Order.findAll({
-      include: [{ model: Item, as: 'items' }]
+    res.status(500).json({ 
+      error: 'Erro interno', 
+      message: 'Erro ao buscar os detalhes do pedido.',
+      details: error.message 
     });
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao listar pedidos', details: error.message });
   }
 });
 
@@ -232,14 +311,14 @@ app.get('/order/list', async (req, res) => {
  * /order/{orderId}:
  *   put:
  *     summary: Atualiza um pedido existente
+ *     tags: [Pedidos]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: orderId
  *         required: true
- *         schema:
- *           type: string
+ *         schema: { type: 'string' }
  *     requestBody:
  *       required: true
  *       content:
@@ -247,15 +326,13 @@ app.get('/order/list', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               value:
- *                 type: number
- *               items:
- *                 type: array
- *                 items:
- *                   type: object
+ *               value: { type: 'number' }
+ *               items: { type: 'array', items: { type: 'object' } }
  *     responses:
  *       200:
  *         description: Pedido atualizado com sucesso
+ *       404:
+ *         description: Pedido não encontrado
  */
 app.put('/order/:orderId', authenticateToken, async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -265,17 +342,20 @@ app.put('/order/:orderId', authenticateToken, async (req, res) => {
 
     if (!order) {
       await transaction.rollback();
-      return res.status(404).json({ error: 'Pedido não encontrado' });
+      return res.status(404).json({ 
+        error: 'Não encontrado', 
+        message: `Não é possível atualizar um pedido inexistente (${orderId}).` 
+      });
     }
 
     const updateData = req.body;
     
     await order.update({
-      value: updateData.value || order.value,
+      value: updateData.value !== undefined ? updateData.value : order.value,
       creationDate: updateData.creationDate || order.creationDate
     }, { transaction });
 
-    if (updateData.items) {
+    if (updateData.items && Array.isArray(updateData.items)) {
       await Item.destroy({ where: { orderId }, transaction });
       const newItems = updateData.items.map(item => ({
         ...item,
@@ -291,10 +371,14 @@ app.put('/order/:orderId', authenticateToken, async (req, res) => {
       include: [{ model: Item, as: 'items' }]
     });
 
-    res.json({ message: 'Pedido atualizado com sucesso', order: updatedOrder });
+    res.status(200).json({ message: 'Pedido atualizado com sucesso', order: updatedOrder });
   } catch (error) {
     if (transaction) await transaction.rollback();
-    res.status(400).json({ error: 'Erro ao atualizar pedido', details: error.message });
+    res.status(400).json({ 
+      error: 'Erro na atualização', 
+      message: 'Não foi possível processar a atualização do pedido.',
+      details: error.message 
+    });
   }
 });
 
@@ -302,43 +386,57 @@ app.put('/order/:orderId', authenticateToken, async (req, res) => {
  * @swagger
  * /order/{orderId}:
  *   delete:
- *     summary: Deleta um pedido
+ *     summary: Remove um pedido do sistema
+ *     tags: [Pedidos]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: orderId
  *         required: true
- *         schema:
- *           type: string
+ *         schema: { type: 'string' }
  *     responses:
  *       200:
- *         description: Pedido deletado com sucesso
+ *         description: Pedido removido com sucesso
+ *       404:
+ *         description: Pedido não encontrado
  */
 app.delete('/order/:orderId', authenticateToken, async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { orderId } = req.params;
     
+    // O SQLite com Sequelize configurado com CASCADE deletaria os itens, 
+    // mas fazemos explicitamente para garantir robustez.
     await Item.destroy({ where: { orderId }, transaction });
     const deleted = await Order.destroy({ where: { orderId }, transaction });
 
     if (!deleted) {
       await transaction.rollback();
-      return res.status(404).json({ error: 'Pedido não encontrado' });
+      return res.status(404).json({ 
+        error: 'Não encontrado', 
+        message: `O pedido ${orderId} não existe e não pode ser removido.` 
+      });
     }
 
     await transaction.commit();
-    res.json({ message: 'Pedido deletado com sucesso' });
+    res.status(200).json({ message: `Pedido ${orderId} removido com sucesso.` });
   } catch (error) {
     if (transaction) await transaction.rollback();
-    res.status(500).json({ error: 'Erro ao deletar pedido', details: error.message });
+    res.status(500).json({ 
+      error: 'Erro na remoção', 
+      message: 'Ocorreu um erro ao tentar excluir o pedido.',
+      details: error.message 
+    });
   }
 });
 
+// Inicialização do Banco e Servidor
 sequelize.sync().then(() => {
   app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-    console.log(`Documentação Swagger disponível em http://localhost:${PORT}/api-docs`);
+    console.log(`✅ Servidor rodando na porta ${PORT}`);
+    console.log(`📖 Documentação Swagger: http://localhost:${PORT}/api-docs`);
   });
+}).catch(err => {
+  console.error('❌ Erro ao sincronizar o banco de dados:', err);
 });

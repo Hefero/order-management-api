@@ -66,6 +66,18 @@ CREATE TABLE Items (
 3. **Acessar Documentação**:
    Abra `http://localhost:3000/api-docs` no seu navegador.
 
+4. **Acessar Front-end**:
+   Abra `http://localhost:3000` no seu navegador para gerenciar os pedidos visualmente.
+
+## 🧪 Testes Automatizados
+
+Para garantir a qualidade e robustez da API, foram implementados testes de integração usando **Jest** e **Supertest**.
+
+Para rodar os testes:
+```bash
+npm test
+```
+
 ## 🔐 Autenticação
 
 Para utilizar os endpoints de **Criar**, **Atualizar** ou **Deletar**, você deve:

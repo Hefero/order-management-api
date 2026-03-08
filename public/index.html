@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Pedidos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-blue-600">Gerenciador de Pedidos</h1>
+        
+        <!-- Login Section -->
+        <div id="login-section" class="bg-white p-6 rounded shadow mb-8">
+            <h2 class="text-xl font-semibold mb-4">Autenticação</h2>
+            <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Obter Token JWT</button>
+            <p id="token-status" class="mt-2 text-sm text-gray-500">Token não obtido.</p>
+        </div>
+
+        <!-- Orders List -->
+        <div class="bg-white p-6 rounded shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Lista de Pedidos</h2>
+                <button onclick="fetchOrders()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Atualizar Lista</button>
+            </div>
+            
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="p-2 border">ID Pedido</th>
+                        <th class="p-2 border">Valor Total</th>
+                        <th class="p-2 border">Data Criação</th>
+                        <th class="p-2 border">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-table">
+                    <!-- Pedidos serão inseridos aqui -->
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="mt-4 flex justify-center space-x-2" id="pagination">
+                <!-- Botões de página -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = '';
+        let currentPage = 1;
+
+        async function login() {
+            const res = await fetch('/login', { method: 'POST' });
+            const data = await res.json();
+            token = data.token;
+            document.getElementById('token-status').innerText = 'Token obtido com sucesso!';
+            document.getElementById('token-status').classList.replace('text-gray-500', 'text-green-600');
+        }
+
+        async function fetchOrders(page = 1) {
+            currentPage = page;
+            const res = await fetch(`/order/list?page=${page}&limit=5`);
+            const data = await res.json();
+            
+            const table = document.getElementById('orders-table');
+            table.innerHTML = '';
+            
+            data.orders.forEach(order => {
+                const row = `
+                    <tr>
+                        <td class="p-2 border">${order.orderId}</td>
+                        <td class="p-2 border">R$ ${order.value.toFixed(2)}</td>
+                        <td class="p-2 border">${new Date(order.creationDate).toLocaleString()}</td>
+                        <td class="p-2 border">
+                            <button onclick="deleteOrder('${order.orderId}')" class="text-red-500 hover:underline">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+                table.innerHTML += row;
+            });
+
+            renderPagination(data.pages, data.currentPage);
+        }
+
+        function renderPagination(totalPages, current) {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.innerText = i;
+                btn.className = `px-3 py-1 border rounded ${i === current ? 'bg-blue-500 text-white' : 'bg-white text-blue-500'}`;
+                btn.onclick = () => fetchOrders(i);
+                container.appendChild(btn);
+            }
+        }
+
+        async function deleteOrder(id) {
+            if (!token) return alert('Obtenha o token primeiro!');
+            if (!confirm('Deseja excluir este pedido?')) return;
+
+            const res = await fetch(`/order/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                alert('Pedido excluído!');
+                fetchOrders(currentPage);
+            } else {
+                const err = await res.json();
+                alert('Erro: ' + err.message);
+            }
+        }
+
+        // Inicializar
+        fetchOrders();
+    </script>
+</body>
+</html>
