@@ -1,56 +1,83 @@
 # Order Management API
 
-Esta é uma API simples desenvolvida em Node.js para gerenciar pedidos, com suporte a mapeamento de dados, banco de dados SQL (SQLite), autenticação JWT e documentação Swagger.
+API REST desenvolvida em Node.js para gerenciamento de pedidos, com suporte a mapeamento de dados, banco de dados SQL (SQLite), autenticação JWT e documentação Swagger.
 
-## Tecnologias Utilizadas
+## 🚀 Funcionalidades
+
+- **Criação de Pedidos**: Recebe um JSON de entrada e realiza a transformação dos dados (mapping) para o formato do banco.
+- **Leitura de Pedidos**: Consulta por ID ou listagem completa.
+- **Atualização e Exclusão**: Gerenciamento completo do ciclo de vida do pedido.
+- **Autenticação JWT**: Proteção de endpoints sensíveis.
+- **Documentação Swagger**: Interface interativa para testes da API.
+
+## 🛠️ Tecnologias
 
 - **Node.js** & **Express**
-- **Sequelize** (ORM) & **SQLite** (Banco de Dados)
-- **JWT** (Autenticação)
-- **Swagger** (Documentação)
+- **Sequelize** (ORM) & **SQLite** (Banco de Dados SQL)
+- **JWT** (jsonwebtoken)
+- **Swagger** (swagger-ui-express)
 
-## Instalação
+## 📋 Mapeamento de Dados (Data Transformation)
 
-1. Clone o repositório:
-   ```bash
-   git clone <url-do-repositorio>
-   cd order-management-api
-   ```
+A API realiza a transformação automática do JSON de entrada para o esquema do banco de dados:
 
-2. Instale as dependências:
+| JSON de Entrada | Banco de Dados (SQL) |
+| :--- | :--- |
+| `numeroPedido` | `orderId` |
+| `valorTotal` | `value` |
+| `dataCriacao` | `creationDate` |
+| `items[].idItem` | `items[].productId` |
+| `items[].quantidadeItem` | `items[].quantity` |
+| `items[].valorItem` | `items[].price` |
+
+## 🗄️ Estrutura do Banco de Dados (SQL)
+
+O script para criação manual das tabelas está disponível no arquivo `schema.sql`:
+
+```sql
+CREATE TABLE Orders (
+    orderId TEXT PRIMARY KEY NOT NULL,
+    value REAL NOT NULL,
+    creationDate TEXT NOT NULL
+);
+
+CREATE TABLE Items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    orderId TEXT NOT NULL,
+    productId INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
+    price REAL NOT NULL,
+    FOREIGN KEY (orderId) REFERENCES Orders(orderId) ON DELETE CASCADE
+);
+```
+
+## 🚀 Como Executar
+
+1. **Instalar dependências**:
    ```bash
    npm install
    ```
 
-3. Inicie o servidor:
+2. **Iniciar o servidor**:
    ```bash
    node index.js
    ```
 
-O servidor estará rodando em `http://localhost:3000`.
+3. **Acessar Documentação**:
+   Abra `http://localhost:3000/api-docs` no seu navegador.
 
-## Endpoints
+## 🔐 Autenticação
 
-### Autenticação
-- `POST /login`: Gera um token JWT para ser usado nos endpoints protegidos.
+Para utilizar os endpoints de **Criar**, **Atualizar** ou **Deletar**, você deve:
+1. Fazer uma requisição `POST` para `/login`.
+2. Copiar o `token` retornado.
+3. Incluir no Header das requisições: `Authorization: Bearer <SEU_TOKEN>`.
 
-### Pedidos
-- `POST /order`: Cria um novo pedido (Requer JWT).
-- `GET /order/:orderId`: Obtém detalhes de um pedido específico.
-- `GET /order/list`: Lista todos os pedidos.
-- `PUT /order/:orderId`: Atualiza um pedido (Requer JWT).
-- `DELETE /order/:orderId`: Remove um pedido (Requer JWT).
-
-## Documentação
-
-A documentação interativa da API (Swagger) pode ser acessada em:
-`http://localhost:3000/api-docs`
-
-## Exemplo de Request (Criação)
+## 🧪 Exemplo de Request (Criação)
 
 ```bash
 curl --location 'http://localhost:3000/order' \
---header 'Authorization: Bearer <SEU_TOKEN>' \
+--header 'Authorization: Bearer <TOKEN>' \
 --header 'Content-Type: application/json' \
 --data '{
     "numeroPedido": "v10089015vdb-01",

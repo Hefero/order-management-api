@@ -37,7 +37,7 @@ const swaggerOptions = {
       },
     },
   },
-  apis: ['./index.js'], // Caminho para as anotações
+  apis: ['./index.js'],
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
@@ -48,10 +48,20 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) return res.status(401).json({ error: 'Token não fornecido' });
+  if (!token) {
+    return res.status(401).json({ 
+      error: 'Acesso negado', 
+      message: 'Token de autenticação não fornecido. Por favor, faça login para obter um token.' 
+    });
+  }
 
   jwt.verify(token, SECRET_KEY, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Token inválido ou expirado' });
+    if (err) {
+      return res.status(403).json({ 
+        error: 'Acesso proibido', 
+        message: 'Token inválido ou expirado. Por favor, faça login novamente.' 
+      });
+    }
     req.user = user;
     next();
   });
@@ -68,26 +78,21 @@ const authenticateToken = (req, res, next) => {
  *         description: Token gerado com sucesso
  */
 app.post('/login', (req, res) => {
+  // Simulação de autenticação de usuário
   const user = { id: 1, username: 'admin' };
   const token = jwt.sign(user, SECRET_KEY, { expiresIn: '1h' });
   res.json({ token });
 });
 
 // Função de mapeamento para transformar o JSON de entrada no formato do banco (Data Transformation)
-/**
- * Transforma o JSON recebido no formato de entrada para o formato do banco de dados.
- * Entrada: { numeroPedido, valorTotal, dataCriacao, items: [{ idItem, quantidadeItem, valorItem }] }
- * Saída: { orderId, value, creationDate, items: [{ productId, quantity, price }] }
- */
 const mapOrderInput = (data) => {
-  if (!data.numeroPedido || !data.items) {
-    throw new Error('Dados de entrada inválidos: numeroPedido e items são obrigatórios.');
+  if (!data.numeroPedido || !data.items || !Array.isArray(data.items)) {
+    throw new Error('Dados de entrada inválidos: numeroPedido e items (array) são obrigatórios.');
   }
 
   return {
     orderId: data.numeroPedido,
     value: data.valorTotal,
-    // Converte a data para o formato ISO 8601 conforme o exemplo (YYYY-MM-DDTHH:mm:ss.sssZ)
     creationDate: new Date(data.dataCriacao).toISOString(),
     items: data.items.map(item => ({
       productId: parseInt(item.idItem),
@@ -101,7 +106,7 @@ const mapOrderInput = (data) => {
  * @swagger
  * /order:
  *   post:
- *     summary: Cria um novo pedido
+ *     summary: Cria um novo pedido (Mapeamento de Dados)
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -161,7 +166,10 @@ app.post('/order', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     if (transaction) await transaction.rollback();
-    res.status(400).json({ error: 'Erro ao criar pedido', details: error.message });
+    res.status(400).json({ 
+      error: 'Erro na criação do pedido', 
+      details: error.message 
+    });
   }
 });
 
