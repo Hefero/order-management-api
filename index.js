@@ -73,11 +73,21 @@ app.post('/login', (req, res) => {
   res.json({ token });
 });
 
-// Função de mapeamento para transformar o JSON de entrada no formato do banco
+// Função de mapeamento para transformar o JSON de entrada no formato do banco (Data Transformation)
+/**
+ * Transforma o JSON recebido no formato de entrada para o formato do banco de dados.
+ * Entrada: { numeroPedido, valorTotal, dataCriacao, items: [{ idItem, quantidadeItem, valorItem }] }
+ * Saída: { orderId, value, creationDate, items: [{ productId, quantity, price }] }
+ */
 const mapOrderInput = (data) => {
+  if (!data.numeroPedido || !data.items) {
+    throw new Error('Dados de entrada inválidos: numeroPedido e items são obrigatórios.');
+  }
+
   return {
     orderId: data.numeroPedido,
     value: data.valorTotal,
+    // Converte a data para o formato ISO 8601 conforme o exemplo (YYYY-MM-DDTHH:mm:ss.sssZ)
     creationDate: new Date(data.dataCriacao).toISOString(),
     items: data.items.map(item => ({
       productId: parseInt(item.idItem),
