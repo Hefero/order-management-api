@@ -1,46 +1,50 @@
-# Order Management API
+# 📦 Order Management API - Node.js & SQL
 
-API REST desenvolvida em Node.js para gerenciamento de pedidos, com suporte a mapeamento de dados, banco de dados SQL (SQLite), autenticação JWT e documentação Swagger.
+Esta é uma API REST robusta desenvolvida em **Node.js** para o gerenciamento completo de pedidos. O projeto inclui transformação de dados (mapping), persistência em banco de dados SQL, autenticação JWT, documentação interativa com Swagger, testes automatizados e um front-end simples para visualização.
 
-## 🚀 Funcionalidades
+---
 
-- **Criação de Pedidos**: Recebe um JSON de entrada e realiza a transformação dos dados (mapping) para o formato do banco.
-- **Leitura de Pedidos**: Consulta por ID ou listagem completa.
-- **Atualização e Exclusão**: Gerenciamento completo do ciclo de vida do pedido.
-- **Autenticação JWT**: Proteção de endpoints sensíveis.
-- **Documentação Swagger**: Interface interativa para testes da API.
+## 🚀 Funcionalidades Principais
 
-## 🛠️ Tecnologias
+- **CRUD de Pedidos**: Criar, Ler, Atualizar e Deletar pedidos.
+- **Data Transformation**: Mapeamento automático de campos do JSON de entrada para o esquema do banco.
+- **Autenticação JWT**: Segurança nos endpoints de escrita (POST, PUT, DELETE).
+- **Banco de Dados SQL**: Persistência utilizando SQLite com Sequelize ORM.
+- **Documentação Swagger**: Interface interativa para testes de API.
+- **Front-end Integrado**: Painel simples com paginação para gestão de pedidos.
+- **Testes Automatizados**: Suíte de testes de integração com Jest e Supertest.
 
-- **Node.js** & **Express**
-- **Sequelize** (ORM) & **SQLite** (Banco de Dados SQL)
-- **JWT** (jsonwebtoken)
-- **Swagger** (swagger-ui-express)
+---
 
-## 📋 Mapeamento de Dados (Data Transformation)
+## 🛠️ Tecnologias Utilizadas
 
-A API realiza a transformação automática do JSON de entrada para o esquema do banco de dados:
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Banco de Dados**: SQLite (SQL)
+- **ORM**: Sequelize
+- **Segurança**: JSON Web Token (JWT)
+- **Documentação**: Swagger UI & JSDoc
+- **Testes**: Jest & Supertest
+- **Front-end**: HTML5, JavaScript (Fetch API) e Tailwind CSS
 
-| JSON de Entrada | Banco de Dados (SQL) |
-| :--- | :--- |
-| `numeroPedido` | `orderId` |
-| `valorTotal` | `value` |
-| `dataCriacao` | `creationDate` |
-| `items[].idItem` | `items[].productId` |
-| `items[].quantidadeItem` | `items[].quantity` |
-| `items[].valorItem` | `items[].price` |
+---
 
-## 🗄️ Estrutura do Banco de Dados (SQL)
+## 🗄️ Configuração do Banco de Dados (SQL)
 
-O script para criação manual das tabelas está disponível no arquivo `schema.sql`:
+A API utiliza o **SQLite**, o que dispensa a instalação de um servidor de banco de dados externo. O banco é criado automaticamente na primeira execução.
+
+### Estrutura das Tabelas
+Se desejar criar as tabelas manualmente em outro banco SQL (como MySQL ou PostgreSQL), utilize o script `schema.sql` incluído na raiz:
 
 ```sql
+-- Tabela de Pedidos
 CREATE TABLE Orders (
     orderId TEXT PRIMARY KEY NOT NULL,
     value REAL NOT NULL,
     creationDate TEXT NOT NULL
 );
 
+-- Tabela de Itens (Relacionada ao Pedido)
 CREATE TABLE Items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     orderId TEXT NOT NULL,
@@ -51,50 +55,57 @@ CREATE TABLE Items (
 );
 ```
 
-## 🚀 Como Executar
+---
 
-1. **Instalar dependências**:
-   ```bash
-   npm install
-   ```
+## 📥 Instalação e Execução (Passo a Passo)
 
-2. **Iniciar o servidor**:
-   ```bash
-   node index.js
-   ```
+Siga os passos abaixo para rodar o projeto do zero em sua máquina:
 
-3. **Acessar Documentação**:
-   Abra `http://localhost:3000/api-docs` no seu navegador.
+### 1. Pré-requisitos
+Certifique-se de ter o **Node.js** (v14 ou superior) e o **npm** instalados.
 
-4. **Acessar Front-end**:
-   Abra `http://localhost:3000` no seu navegador para gerenciar os pedidos visualmente.
-
-## 🧪 Testes Automatizados
-
-Para garantir a qualidade e robustez da API, foram implementados testes de integração usando **Jest** e **Supertest**.
-
-Para rodar os testes:
+### 2. Clonar o Repositório
 ```bash
-npm test
+git clone https://github.com/Hefero/order-management-api.git
+cd order-management-api
 ```
 
-## 🔐 Autenticação
-
-Para utilizar os endpoints de **Criar**, **Atualizar** ou **Deletar**, você deve:
-1. Fazer uma requisição `POST` para `/login`.
-2. Copiar o `token` retornado.
-3. Incluir no Header das requisições: `Authorization: Bearer <SEU_TOKEN>`.
-
-## 🧪 Exemplo de Request (Criação)
-
+### 3. Instalar Dependências
 ```bash
-curl --location 'http://localhost:3000/order' \
---header 'Authorization: Bearer <TOKEN>' \
---header 'Content-Type: application/json' \
---data '{
+npm install
+```
+
+### 4. Iniciar o Servidor
+```bash
+npm start
+```
+O servidor iniciará em `http://localhost:3000`.
+
+---
+
+## 🧪 Como Testar a Solução
+
+### Opção A: Pelo Front-end (Recomendado)
+1. Abra o navegador em `http://localhost:3000`.
+2. Clique em **"Obter Token JWT"** para se autenticar.
+3. A lista de pedidos aparecerá com suporte a **paginação** e opção de **exclusão**.
+
+### Opção B: Pela Documentação Swagger
+1. Acesse `http://localhost:3000/api-docs`.
+2. Use o endpoint `/login` para gerar um token.
+3. Clique em **"Authorize"** no topo da página e cole o token.
+4. Teste os endpoints de criação e consulta diretamente pela interface.
+
+### Opção C: Via Terminal (cURL)
+**Criar um Pedido (Exemplo de Mapping):**
+```bash
+curl -X POST http://localhost:3000/order \
+-H "Authorization: Bearer <SEU_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '{
     "numeroPedido": "v10089015vdb-01",
     "valorTotal": 10000,
-    "dataCriacao": "2023-07-19T12:24:11.5299601+00:00",
+    "dataCriacao": "2023-07-19T12:24:11.529Z",
     "items": [
         {
             "idItem": "2434",
@@ -104,3 +115,24 @@ curl --location 'http://localhost:3000/order' \
     ]
 }'
 ```
+
+---
+
+## 🛡️ Rodando Testes Automatizados
+
+Para validar a integridade da API e o tratamento de erros robusto:
+```bash
+npm test
+```
+Isso executará a suíte de testes do Jest, validando autenticação, criação de pedidos e retornos de erro (404, 401, etc).
+
+---
+
+## 📂 Estrutura do Projeto
+
+- `index.js`: Ponto de entrada, rotas e configurações da API.
+- `database.js`: Configuração do Sequelize e modelos SQL.
+- `schema.sql`: Script SQL puro para criação das tabelas.
+- `api.test.js`: Testes de integração.
+- `public/`: Arquivos do front-end (HTML/JS).
+- `README.md`: Este guia de instruções.
