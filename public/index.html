@@ -1,130 +1,188 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciador de Pedidos - API Node.js</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        button { transition: all 0.2s ease; }
+        input:focus, select:focus { outline: none; }
+        #orders-table tr:hover { background-color: #f9fafb; }
+        .modal-backdrop { backdrop-filter: blur(2px); }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
-    <div class="max-w-6xl mx-auto p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+
+        <!-- Header -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div>
-                <h1 class="text-3xl font-extrabold text-indigo-700">Gestão de Pedidos</h1>
-                <p class="text-gray-500">API Node.js + SQL + JWT</p>
+                <h1 class="text-3xl font-extrabold text-white drop-shadow">Gestão de Pedidos</h1>
+                <p class="text-indigo-200 text-sm">API Node.js + SQLite + JWT</p>
             </div>
-            <div id="auth-status" class="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                <span id="token-indicator" class="w-3 h-3 rounded-full bg-red-500"></span>
+            <div id="auth-status" class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-lg border border-gray-100">
+                <span id="token-indicator" class="w-3 h-3 rounded-full bg-red-500 shadow"></span>
                 <span id="token-text" class="text-sm font-medium text-gray-600">Não Autenticado</span>
-                <button onclick="login()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-md text-sm hover:bg-indigo-700 transition-colors">
+                <button onclick="login()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-indigo-700 font-semibold shadow">
                     Login (Obter JWT)
                 </button>
             </div>
         </header>
 
-        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Form Section -->
+        <!-- Main Grid -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Formulário de Criação -->
             <section class="lg:col-span-1">
-                <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                    <h2 class="text-lg font-bold mb-5 flex items-center gap-2 text-gray-800 border-b border-gray-100 pb-3">
                         <i class="fas fa-plus-circle text-indigo-600"></i> Novo Pedido
                     </h2>
                     <form id="order-form" onsubmit="createOrder(event)" class="space-y-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Número do Pedido</label>
-                            <input type="text" id="numeroPedido" required placeholder="Ex: v10089015vdb-01" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Número do Pedido</label>
+                            <input type="text" id="numeroPedido" required placeholder="Ex: v10089015vdb-01"
+                                class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Valor Total (R$)</label>
-                            <input type="number" id="valorTotal" step="0.01" required placeholder="10000.00" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Valor Total (R$)</label>
+                            <input type="number" id="valorTotal" step="0.01" required placeholder="10000.00"
+                                class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Data de Criação</label>
-                            <input type="datetime-local" id="dataCriacao" required class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Data de Criação</label>
+                            <input type="datetime-local" id="dataCriacao" required
+                                class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400">
                         </div>
-                        
-                        <div class="pt-4 border-t border-gray-100">
-                            <h3 class="text-sm font-bold text-gray-800 mb-3 flex justify-between items-center">
-                                Itens do Pedido
-                                <button type="button" onclick="addItemRow()" class="text-indigo-600 hover:text-indigo-800 text-xs uppercase tracking-wider">
+
+                        <!-- Itens -->
+                        <div class="pt-3 border-t border-gray-100">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wide">Itens do Pedido</h3>
+                                <button type="button" onclick="addItemRow()"
+                                    class="text-indigo-600 hover:text-indigo-800 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
                                     <i class="fas fa-plus"></i> Adicionar Item
                                 </button>
-                            </h3>
-                            <div id="items-container" class="space-y-3 max-h-60 overflow-y-auto pr-1">
-                                <!-- Item rows will be added here -->
+                            </div>
+                            <div id="items-container" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                <!-- Linhas de item são inseridas aqui -->
                             </div>
                         </div>
 
-                        <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all mt-4">
-                            CRIAR PEDIDO
+                        <button type="submit"
+                            class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 mt-2">
+                            <i class="fas fa-paper-plane mr-2"></i> CRIAR PEDIDO
                         </button>
                     </form>
                 </div>
+
+                <!-- Info de mapeamento -->
+                <div class="bg-white mt-4 p-4 rounded-xl shadow border border-gray-100 text-xs text-gray-500">
+                    <p class="font-bold text-gray-700 mb-2"><i class="fas fa-exchange-alt text-indigo-500 mr-1"></i> Mapeamento de campos</p>
+                    <div class="space-y-1">
+                        <div class="flex justify-between"><span>numeroPedido</span><span class="font-mono text-indigo-600">→ orderId</span></div>
+                        <div class="flex justify-between"><span>valorTotal</span><span class="font-mono text-indigo-600">→ value</span></div>
+                        <div class="flex justify-between"><span>dataCriacao</span><span class="font-mono text-indigo-600">→ creationDate</span></div>
+                        <div class="flex justify-between"><span>idItem</span><span class="font-mono text-indigo-600">→ productId</span></div>
+                        <div class="flex justify-between"><span>quantidadeItem</span><span class="font-mono text-indigo-600">→ quantity</span></div>
+                        <div class="flex justify-between"><span>valorItem</span><span class="font-mono text-indigo-600">→ price</span></div>
+                    </div>
+                </div>
             </section>
 
-            <!-- List Section -->
+            <!-- Lista de Pedidos -->
             <section class="lg:col-span-2">
-                <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                        <h2 class="text-xl font-bold flex items-center gap-2">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <h2 class="text-lg font-bold flex items-center gap-2 text-gray-800">
                             <i class="fas fa-list-ul text-indigo-600"></i> Pedidos Registrados
                         </h2>
-                        <button onclick="fetchOrders()" class="text-gray-500 hover:text-indigo-600 transition-colors">
+                        <button onclick="fetchOrders()" title="Atualizar lista"
+                            class="text-gray-400 hover:text-indigo-600 transition-colors p-1.5 rounded-lg hover:bg-gray-100">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
-                    
+
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead>
-                                <tr class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
-                                    <th class="px-6 py-4 font-bold">ID Pedido</th>
-                                    <th class="px-6 py-4 font-bold">Valor Total</th>
-                                    <th class="px-6 py-4 font-bold">Data</th>
-                                    <th class="px-6 py-4 font-bold">Itens</th>
-                                    <th class="px-6 py-4 font-bold text-center">Ações</th>
+                                <tr class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
+                                    <th class="px-6 py-3 font-bold">ID Pedido</th>
+                                    <th class="px-6 py-3 font-bold">Valor Total</th>
+                                    <th class="px-6 py-3 font-bold">Data</th>
+                                    <th class="px-6 py-3 font-bold">Itens</th>
+                                    <th class="px-6 py-3 font-bold text-center">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="orders-table" class="divide-y divide-gray-100 text-sm">
-                                <!-- Pedidos serão inseridos aqui -->
+                            <tbody id="orders-table" class="divide-y divide-gray-50 text-sm text-gray-700">
+                                <!-- Pedidos serão inseridos aqui via JS -->
                             </tbody>
                         </table>
                     </div>
 
-                    <!-- Pagination -->
+                    <!-- Paginação -->
                     <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-center items-center gap-2" id="pagination">
-                        <!-- Botões de página -->
+                    </div>
+                </div>
+
+                <!-- Links úteis -->
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                    <a href="/api-docs" target="_blank"
+                        class="bg-white rounded-xl p-4 shadow border border-gray-100 flex items-center gap-3 hover:border-indigo-300 transition-colors">
+                        <i class="fas fa-book text-2xl text-indigo-500"></i>
+                        <div>
+                            <p class="font-bold text-gray-800 text-sm">Swagger Docs</p>
+                            <p class="text-xs text-gray-400">Documentação interativa</p>
+                        </div>
+                    </a>
+                    <div class="bg-white rounded-xl p-4 shadow border border-gray-100 flex items-center gap-3">
+                        <i class="fas fa-database text-2xl text-purple-500"></i>
+                        <div>
+                            <p class="font-bold text-gray-800 text-sm">SQLite</p>
+                            <p class="text-xs text-gray-400">Banco de dados local</p>
+                        </div>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Modal para ver itens -->
-    <div id="items-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl max-w-2xl w-full shadow-2xl overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-indigo-50">
-                <h3 class="text-xl font-bold text-indigo-800" id="modal-title">Itens do Pedido</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+    <!-- Modal de Itens -->
+    <div id="items-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50 modal-backdrop"
+        style="display:none">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-indigo-50">
+                <h3 class="text-lg font-bold text-indigo-800" id="modal-title">Itens do Pedido</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div class="p-6">
-                <table class="w-full text-left border-collapse">
+            <div class="p-6 max-h-96 overflow-y-auto">
+                <table class="w-full text-left">
                     <thead>
-                        <tr class="text-xs uppercase text-gray-500 border-b border-gray-100">
+                        <tr class="text-xs uppercase text-gray-400 border-b border-gray-100">
                             <th class="py-3 px-2">ID Produto</th>
                             <th class="py-3 px-2">Quantidade</th>
-                            <th class="py-3 px-2">Preço Unitário</th>
+                            <th class="py-3 px-2">Preço Unit.</th>
                             <th class="py-3 px-2">Subtotal</th>
                         </tr>
                     </thead>
-                    <tbody id="modal-items-body" class="text-sm">
-                        <!-- Itens do modal -->
+                    <tbody id="modal-items-body" class="text-sm text-gray-700">
                     </tbody>
                 </table>
             </div>
-            <div class="p-4 bg-gray-50 text-right">
-                <button onclick="closeModal()" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 font-medium">Fechar</button>
+            <div class="p-4 bg-gray-50 text-right border-t border-gray-100">
+                <button onclick="closeModal()"
+                    class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 font-medium text-sm">
+                    Fechar
+                </button>
             </div>
         </div>
     </div>
@@ -133,14 +191,15 @@
         let token = '';
         let currentPage = 1;
 
-        // Inicializar com a data atual
+        // Inicializar com data/hora atual
         document.getElementById('dataCriacao').value = new Date().toISOString().slice(0, 16);
 
+        // Adiciona linha de item no formulário
         function addItemRow() {
             const container = document.getElementById('items-container');
             const rowId = Date.now();
             const row = document.createElement('div');
-            row.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded-lg border border-gray-200 relative group';
+            row.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded-lg border border-gray-200';
             row.id = `row-${rowId}`;
             row.innerHTML = `
                 <div class="flex-1">
@@ -155,8 +214,8 @@
                     <label class="block text-[10px] font-bold text-gray-400 uppercase">Preço</label>
                     <input type="number" step="0.01" placeholder="0.00" class="item-price w-full p-1.5 border-b border-gray-300 bg-transparent outline-none focus:border-indigo-500 text-sm" required>
                 </div>
-                <button type="button" onclick="removeRow('${rowId}')" class="text-red-400 hover:text-red-600 p-1.5">
-                    <i class="fas fa-trash-alt"></i>
+                <button type="button" onclick="removeRow('${rowId}')" class="text-red-400 hover:text-red-600 pb-1.5">
+                    <i class="fas fa-trash-alt text-xs"></i>
                 </button>
             `;
             container.appendChild(row);
@@ -166,25 +225,26 @@
             document.getElementById(`row-${id}`).remove();
         }
 
+        // Login - obtém token JWT
         async function login() {
             try {
-                const res = await fetch('/login', { method: 'POST' });
+                const res = await fetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
                 const data = await res.json();
                 token = data.token;
-                
-                const indicator = document.getElementById('token-indicator');
+
+                document.getElementById('token-indicator').classList.replace('bg-red-500', 'bg-green-500');
                 const text = document.getElementById('token-text');
-                
-                indicator.classList.replace('bg-red-500', 'bg-green-500');
                 text.innerText = 'Autenticado (JWT Ativo)';
                 text.classList.add('text-green-600');
-                
-                alert('Token JWT obtido com sucesso! Agora você pode criar e excluir pedidos.');
+                text.classList.remove('text-gray-600');
+
+                alert('Token JWT obtido com sucesso! Agora voce pode criar e excluir pedidos.');
             } catch (e) {
                 alert('Erro ao obter token.');
             }
         }
 
+        // Cria pedido
         async function createOrder(event) {
             event.preventDefault();
             if (!token) return alert('Por favor, realize o login primeiro para obter o token JWT.');
@@ -202,16 +262,13 @@
                 numeroPedido: document.getElementById('numeroPedido').value,
                 valorTotal: parseFloat(document.getElementById('valorTotal').value),
                 dataCriacao: new Date(document.getElementById('dataCriacao').value).toISOString(),
-                items: items
+                items
             };
 
             try {
                 const res = await fetch('/order', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(payload)
                 });
 
@@ -220,48 +277,57 @@
                     alert('Pedido criado com sucesso!');
                     document.getElementById('order-form').reset();
                     document.getElementById('items-container').innerHTML = '';
+                    document.getElementById('dataCriacao').value = new Date().toISOString().slice(0, 16);
                     addItemRow();
                     fetchOrders(1);
                 } else {
-                    alert(`Erro: ${data.message || data.error}`);
+                    alert(`Erro ${res.status}: ${data.message || data.error}`);
                 }
             } catch (e) {
-                alert('Erro na comunicação com a API.');
+                alert('Erro na comunicacao com a API.');
             }
         }
 
+        // Busca pedidos com paginação
         async function fetchOrders(page = 1) {
             currentPage = page;
             try {
                 const res = await fetch(`/order/list?page=${page}&limit=8`);
                 const data = await res.json();
-                
+
                 const table = document.getElementById('orders-table');
                 table.innerHTML = '';
-                
-                if (data.orders.length === 0) {
+
+                if (!data.orders || data.orders.length === 0) {
                     table.innerHTML = '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-400 italic">Nenhum pedido encontrado.</td></tr>';
+                    document.getElementById('pagination').innerHTML = '';
+                    return;
                 }
 
                 data.orders.forEach(order => {
-                    const row = `
+                    const date = new Date(order.creationDate).toLocaleString('pt-BR');
+                    const value = order.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                    const itemCount = order.items ? order.items.length : 0;
+
+                    table.innerHTML += `
                         <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 font-medium text-gray-900">${order.orderId}</td>
-                            <td class="px-6 py-4 text-indigo-600 font-bold">R$ ${order.value.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td class="px-6 py-4 text-gray-500 text-xs">${new Date(order.creationDate).toLocaleString('pt-BR')}</td>
+                            <td class="px-6 py-4 font-medium text-gray-900 font-mono text-xs">${order.orderId}</td>
+                            <td class="px-6 py-4 text-indigo-600 font-bold">R$ ${value}</td>
+                            <td class="px-6 py-4 text-gray-400 text-xs">${date}</td>
                             <td class="px-6 py-4">
-                                <button onclick="viewItems('${order.orderId}')" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100">
-                                    ${order.items ? order.items.length : 0} itens
+                                <button onclick="viewItems('${order.orderId}')"
+                                    class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors">
+                                    ${itemCount} ${itemCount === 1 ? 'item' : 'itens'}
                                 </button>
                             </td>
-                            <td class="px-6 py-4 text-center space-x-3">
-                                <button onclick="deleteOrder('${order.orderId}')" class="text-red-400 hover:text-red-600 transition-colors" title="Excluir">
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="deleteOrder('${order.orderId}')"
+                                    class="text-red-400 hover:text-red-600 transition-colors p-1" title="Excluir pedido">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </td>
                         </tr>
                     `;
-                    table.innerHTML += row;
                 });
 
                 renderPagination(data.pages, data.currentPage);
@@ -270,55 +336,76 @@
             }
         }
 
+        // Renderiza botões de paginação
         function renderPagination(totalPages, current) {
             const container = document.getElementById('pagination');
             container.innerHTML = '';
-            
             if (totalPages <= 1) return;
 
             for (let i = 1; i <= totalPages; i++) {
                 const btn = document.createElement('button');
                 btn.innerText = i;
-                btn.className = `w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-all ${i === current ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-500 hover:bg-gray-200'}`;
+                btn.className = `w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                    i === current
+                        ? 'bg-indigo-600 text-white shadow'
+                        : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'
+                }`;
                 btn.onclick = () => fetchOrders(i);
                 container.appendChild(btn);
             }
         }
 
+        // Abre modal com itens do pedido
         async function viewItems(id) {
             try {
                 const res = await fetch(`/order/${id}`);
                 const order = await res.json();
-                
+
                 document.getElementById('modal-title').innerText = `Itens do Pedido: ${id}`;
                 const body = document.getElementById('modal-items-body');
                 body.innerHTML = '';
-                
+
+                let total = 0;
                 order.items.forEach(item => {
                     const subtotal = item.quantity * item.price;
+                    total += subtotal;
                     body.innerHTML += `
-                        <tr class="border-b border-gray-50">
-                            <td class="py-4 px-2 font-medium text-gray-700">${item.productId}</td>
-                            <td class="py-4 px-2">${item.quantity}</td>
-                            <td class="py-4 px-2">R$ ${item.price.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td class="py-4 px-2 font-bold text-indigo-600">R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                        <tr class="border-b border-gray-50 hover:bg-gray-50">
+                            <td class="py-3 px-2 font-mono font-medium">${item.productId}</td>
+                            <td class="py-3 px-2">${item.quantity}</td>
+                            <td class="py-3 px-2">R$ ${item.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                            <td class="py-3 px-2 font-bold text-indigo-600">R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                         </tr>
                     `;
                 });
-                
-                document.getElementById('items-modal').classList.remove('hidden');
+
+                body.innerHTML += `
+                    <tr class="bg-indigo-50 font-bold">
+                        <td colspan="3" class="py-3 px-2 text-right text-gray-700">Total do Pedido:</td>
+                        <td class="py-3 px-2 text-indigo-700">R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                `;
+
+                const modal = document.getElementById('items-modal');
+                modal.style.display = 'flex';
             } catch (e) {
                 alert('Erro ao carregar itens.');
             }
         }
 
         function closeModal() {
-            document.getElementById('items-modal').classList.add('hidden');
+            document.getElementById('items-modal').style.display = 'none';
         }
 
+        // Fecha modal ao clicar fora
+        document.getElementById('items-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Deleta pedido
         async function deleteOrder(id) {
-            if (!token) return alert('Obtenha o token JWT primeiro!');
-            if (!confirm(`Tem certeza que deseja excluir o pedido ${id}?`)) return;
+            if (!token) return alert('Obtenha o token JWT primeiro clicando em "Login".');
+            if (!confirm(`Tem certeza que deseja excluir o pedido "${id}"?`)) return;
 
             try {
                 const res = await fetch(`/order/${id}`, {
@@ -327,18 +414,17 @@
                 });
 
                 if (res.ok) {
-                    alert('Pedido removido com sucesso!');
                     fetchOrders(currentPage);
                 } else {
                     const err = await res.json();
-                    alert(`Erro: ${err.message}`);
+                    alert(`Erro: ${err.message || err.error}`);
                 }
             } catch (e) {
                 alert('Erro ao excluir pedido.');
             }
         }
 
-        // Inicializar
+        // Inicialização
         addItemRow();
         fetchOrders();
     </script>
