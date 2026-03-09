@@ -276,3 +276,9 @@ curl -X POST http://localhost:3000/order \
 ![Interface da aplicação](images/interface.png)
 
 ---
+
+## Interface Swagger
+
+![Interface swagger](images/swagger.png)
+
+---
