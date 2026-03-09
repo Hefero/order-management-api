@@ -268,3 +268,11 @@ curl -X POST http://localhost:3000/order \
 | 404 | Pedido não encontrado |
 | 409 | `orderId` já existe (conflito) |
 | 500 | Erro interno do servidor |
+
+---
+
+## Interface da Aplicação
+
+![Interface da aplicação](images/interface.png)
+
+---
