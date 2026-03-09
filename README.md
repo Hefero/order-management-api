@@ -17,6 +17,29 @@ API REST para gerenciamento de pedidos desenvolvida em Node.js com Express, SQLi
 
 ---
 
+## Instalação e Execução
+
+### Pré-requisitos
+- Node.js v14+
+- npm
+
+### Instalar dependências
+```bash
+npm install
+```
+
+### Executar
+```bash
+npm start
+```
+
+| Recurso | URL |
+|:---|:---|
+| Front-end | http://localhost:3000 |
+| Swagger | http://localhost:3000/api-docs |
+
+---
+
 ## Estrutura do Projeto
 
 ```
@@ -163,29 +186,6 @@ Authorization: Bearer <token>
 |:---|:---|:---|:---|
 | `page` | integer | 1 | Número da página |
 | `limit` | integer | 10 | Itens por página (máx. 100) |
-
----
-
-## Instalação e Execução
-
-### Pré-requisitos
-- Node.js v14+
-- npm
-
-### Instalar dependências
-```bash
-npm install
-```
-
-### Executar
-```bash
-npm start
-```
-
-| Recurso | URL |
-|:---|:---|
-| Front-end | http://localhost:3000 |
-| Swagger | http://localhost:3000/api-docs |
 
 ---
 
