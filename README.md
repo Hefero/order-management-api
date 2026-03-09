@@ -11,66 +11,34 @@ Esta é uma API REST robusta desenvolvida em **Node.js** para o gerenciamento co
 - **Autenticação JWT**: Segurança nos endpoints de escrita (POST, PUT, DELETE).
 - **Banco de Dados SQL**: Persistência utilizando SQLite com Sequelize ORM.
 - **Documentação Swagger**: Interface interativa para testes de API.
-- **Front-end Integrado**: Painel simples com paginação para gestão de pedidos.
+- **Front-end Integrado**: Painel moderno com gestão completa de pedidos e itens.
 - **Testes Automatizados**: Suíte de testes de integração com Jest e Supertest.
 
 ---
 
-## 🔐 Autenticação JWT
+## 🗄️ Modelo do Banco de Dados (SQL)
 
-A API utiliza **JSON Web Tokens (JWT)** para proteger endpoints que realizam alterações no banco de dados.
+A API utiliza um banco de dados SQL (SQLite) com a seguinte modelagem relacional:
 
-### Fluxo de Autenticação:
-1.  **Obter Token**: Realize uma requisição `POST` para `/login`.
-2.  **Utilizar Token**: Em todas as requisições protegidas, envie o token no cabeçalho (Header) da seguinte forma:
-    *   **Key**: `Authorization`
-    *   **Value**: `Bearer <SEU_TOKEN_AQUI>`
+### 1. Tabela: `Orders` (Pedidos)
+Armazena as informações principais do pedido.
+| Coluna | Tipo | Descrição |
+| :--- | :--- | :--- |
+| `orderId` | `STRING` | Chave Primária (ID do Pedido) |
+| `value` | `FLOAT` | Valor total do pedido |
+| `creationDate` | `DATE` | Data de criação do pedido |
 
----
+### 2. Tabela: `Items` (Itens do Pedido)
+Armazena os itens vinculados a cada pedido (Relacionamento 1:N).
+| Coluna | Tipo | Descrição |
+| :--- | :--- | :--- |
+| `id` | `INTEGER` | Chave Primária (Auto-incremento) |
+| `orderId` | `STRING` | Chave Estrangeira (Referencia `Orders.orderId`) |
+| `productId` | `INTEGER` | ID do produto |
+| `quantity` | `INTEGER` | Quantidade do item |
+| `price` | `FLOAT` | Preço unitário do item |
 
-## 📋 CRUD de Pedidos (Endpoints)
-
-Abaixo estão detalhados todos os endpoints disponíveis na API:
-
-### 1. Autenticação
-*   **POST** `/login`
-    *   **Descrição**: Gera um token de acesso válido por 2 horas.
-    *   **Resposta**: `{ "token": "eyJhbG..." }`
-
-### 2. Criar Novo Pedido (Obrigatório)
-*   **POST** `/order`
-    *   **Autenticação**: Requer JWT (Bearer Token).
-    *   **Descrição**: Recebe o JSON no formato legado e realiza o **Mapping** para o banco SQL.
-    *   **Exemplo de Body (Entrada)**:
-        ```json
-        { 
-            "numeroPedido": "v10089015vdb-01", 
-            "valorTotal": 10000, 
-            "dataCriacao": "2023-07-19T12:24:11.529Z",  
-            "items": [{ "idItem": "2434", "quantidadeItem": 1, "valorItem": 1000 }] 
-        }
-        ```
-
-### 3. Obter Dados do Pedido (Obrigatório)
-*   **GET** `/order/:orderId`
-    *   **Exemplo**: `http://localhost:3000/order/v10089015vdb-01`
-    *   **Descrição**: Retorna os detalhes de um pedido específico e seus itens.
-
-### 4. Listar Todos os Pedidos (Opcional)
-*   **GET** `/order/list`
-    *   **Parâmetros (Query)**: `page` (padrão 1), `limit` (padrão 10).
-    *   **Descrição**: Retorna uma lista paginada de todos os pedidos registrados.
-
-### 5. Atualizar Pedido (Opcional)
-*   **PUT** `/order/:orderId`
-    *   **Autenticação**: Requer JWT (Bearer Token).
-    *   **Descrição**: Atualiza os dados de um pedido existente.
-    *   **Exemplo de Body**: `{ "value": 15000, "items": [...] }`
-
-### 6. Deletar Pedido (Opcional)
-*   **DELETE** `/order/:orderId`
-    *   **Autenticação**: Requer JWT (Bearer Token).
-    *   **Descrição**: Remove permanentemente um pedido e seus itens do banco de dados.
+> **Nota**: A exclusão de um pedido (`Order`) remove automaticamente todos os seus itens (`Items`) via `ON DELETE CASCADE`.
 
 ---
 
@@ -78,7 +46,7 @@ Abaixo estão detalhados todos os endpoints disponíveis na API:
 
 A API realiza a transformação automática do JSON de entrada para o esquema do banco de dados:
 
-| Campo de Entrada | Campo de Saída (SQL) | Tipo de Transformação |
+| Campo de Entrada (JSON) | Campo de Saída (Banco SQL) | Tipo de Transformação |
 | :--- | :--- | :--- |
 | `numeroPedido` | `orderId` | Mapeamento direto de String |
 | `valorTotal` | `value` | Mapeamento direto de Number |
@@ -89,28 +57,15 @@ A API realiza a transformação automática do JSON de entrada para o esquema do
 
 ---
 
-## 🗄️ Estrutura do Banco de Dados (SQL)
+## 🔐 Autenticação JWT
 
-O banco de dados é gerido pelo Sequelize (SQLite). O script `schema.sql` reflete a estrutura exata:
+A API utiliza **JSON Web Tokens (JWT)** para proteger endpoints que realizam alterações no banco de dados.
 
-```sql
--- Tabela: Order
-CREATE TABLE Orders (
-    orderId TEXT PRIMARY KEY NOT NULL,
-    value REAL NOT NULL,
-    creationDate TEXT NOT NULL
-);
-
--- Tabela: Items
-CREATE TABLE Items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    orderId TEXT NOT NULL,
-    productId INTEGER NOT NULL,
-    quantity INTEGER NOT NULL,
-    price REAL NOT NULL,
-    FOREIGN KEY (orderId) REFERENCES Orders(orderId) ON DELETE CASCADE
-);
-```
+### Fluxo de Autenticação:
+1.  **Obter Token**: Realize uma requisição `POST` para `/login`.
+2.  **Utilizar Token**: Em todas as requisições protegidas, envie o token no cabeçalho (Header):
+    *   **Key**: `Authorization`
+    *   **Value**: `Bearer <SEU_TOKEN_AQUI>`
 
 ---
 
@@ -132,7 +87,7 @@ npm start
 ```
 - **API**: `http://localhost:3000`
 - **Swagger**: `http://localhost:3000/api-docs`
-- **Front-end**: `http://localhost:3000` (Painel de Gestão)
+- **Front-end**: `http://localhost:3000` (Painel de Gestão Completo)
 
 ---
 
