@@ -208,6 +208,25 @@ A suíte cobre:
 
 ---
 
+## Teste End-to-End (Frontend + API)
+
+Com o servidor em execução:
+```bash
+npm start
+```
+Execute o teste:
+
+```bash
+node frontend_test.js
+```
+
+O script valida:
+- Carregamento da página /
+- Acesso à documentação /api-docs
+- Fluxo completo da aplicação (login, criação, busca, listagem, atualização e exclusão de pedidos) através de requisições HTTP reais.
+
+---
+
 ## Exemplo de Request
 
 ```bash
