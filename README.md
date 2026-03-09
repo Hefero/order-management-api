@@ -16,30 +16,67 @@ Esta é uma API REST robusta desenvolvida em **Node.js** para o gerenciamento co
 
 ---
 
+## 🔐 Autenticação JWT
+
+A API utiliza **JSON Web Tokens (JWT)** para proteger endpoints que realizam alterações no banco de dados.
+
+### Fluxo de Autenticação:
+1.  **Obter Token**: Realize uma requisição `POST` para `/login`.
+2.  **Utilizar Token**: Em todas as requisições protegidas, envie o token no cabeçalho (Header) da seguinte forma:
+    *   **Key**: `Authorization`
+    *   **Value**: `Bearer <SEU_TOKEN_AQUI>`
+
+---
+
+## 📋 CRUD de Pedidos (Endpoints)
+
+Abaixo estão detalhados todos os endpoints disponíveis na API:
+
+### 1. Autenticação
+*   **POST** `/login`
+    *   **Descrição**: Gera um token de acesso válido por 2 horas.
+    *   **Resposta**: `{ "token": "eyJhbG..." }`
+
+### 2. Criar Novo Pedido (Obrigatório)
+*   **POST** `/order`
+    *   **Autenticação**: Requer JWT (Bearer Token).
+    *   **Descrição**: Recebe o JSON no formato legado e realiza o **Mapping** para o banco SQL.
+    *   **Exemplo de Body (Entrada)**:
+        ```json
+        { 
+            "numeroPedido": "v10089015vdb-01", 
+            "valorTotal": 10000, 
+            "dataCriacao": "2023-07-19T12:24:11.529Z",  
+            "items": [{ "idItem": "2434", "quantidadeItem": 1, "valorItem": 1000 }] 
+        }
+        ```
+
+### 3. Obter Dados do Pedido (Obrigatório)
+*   **GET** `/order/:orderId`
+    *   **Exemplo**: `http://localhost:3000/order/v10089015vdb-01`
+    *   **Descrição**: Retorna os detalhes de um pedido específico e seus itens.
+
+### 4. Listar Todos os Pedidos (Opcional)
+*   **GET** `/order/list`
+    *   **Parâmetros (Query)**: `page` (padrão 1), `limit` (padrão 10).
+    *   **Descrição**: Retorna uma lista paginada de todos os pedidos registrados.
+
+### 5. Atualizar Pedido (Opcional)
+*   **PUT** `/order/:orderId`
+    *   **Autenticação**: Requer JWT (Bearer Token).
+    *   **Descrição**: Atualiza os dados de um pedido existente.
+    *   **Exemplo de Body**: `{ "value": 15000, "items": [...] }`
+
+### 6. Deletar Pedido (Opcional)
+*   **DELETE** `/order/:orderId`
+    *   **Autenticação**: Requer JWT (Bearer Token).
+    *   **Descrição**: Remove permanentemente um pedido e seus itens do banco de dados.
+
+---
+
 ## 📋 Transformação de Dados (Mapping)
 
-A API foi projetada para receber dados de um sistema legado/externo e transformá-los para um formato padronizado antes de salvar no banco de dados SQL.
-
-### 📥 JSON de Entrada (Request Body)
-Este é o formato que a API espera receber no endpoint `POST /order`:
-
-```json
-{ 
-    "numeroPedido": "v10089015vdb-01", 
-    "valorTotal": 10000, 
-    "dataCriacao": "2023-07-19T12:24:11.5299601+00:00",  
-    "items": [ 
-        { 
-            "idItem": "2434", 
-            "quantidadeItem": 1, 
-            "valorItem": 1000 
-        } 
-    ] 
-}
-```
-
-### 📤 JSON de Saída / Banco de Dados (Mapped Data)
-Após o processamento, os dados são transformados e armazenados conforme abaixo:
+A API realiza a transformação automática do JSON de entrada para o esquema do banco de dados:
 
 | Campo de Entrada | Campo de Saída (SQL) | Tipo de Transformação |
 | :--- | :--- | :--- |
@@ -49,22 +86,6 @@ Após o processamento, os dados são transformados e armazenados conforme abaixo
 | `items[].idItem` | `items[].productId` | Conversão de String para Integer |
 | `items[].quantidadeItem` | `items[].quantity` | Mapeamento direto de Integer |
 | `items[].valorItem` | `items[].price` | Mapeamento direto de Number |
-
-**Resultado Final no Banco:**
-```json
-{
-    "orderId": "v10089015vdb-01",
-    "value": 10000,
-    "creationDate": "2023-07-19T12:24:11.529Z",
-    "items": [
-        {
-            "productId": 2434,
-            "quantity": 1,
-            "price": 1000
-        }
-    ]
-}
-```
 
 ---
 
@@ -132,13 +153,3 @@ A API retorna códigos HTTP semânticos:
 - `404 Not Found`: Pedido não localizado.
 - `409 Conflict`: Tentativa de duplicar um `orderId`.
 - `500 Internal Server Error`: Erro inesperado no servidor.
-
----
-
-## 📂 Estrutura do Projeto
-
-- `index.js`: Lógica da API, Rotas e Mapping.
-- `database.js`: Configuração do Sequelize e Modelos SQL.
-- `schema.sql`: Script SQL para criação das tabelas.
-- `api.test.js`: Testes de integração.
-- `public/`: Front-end simples com paginação.
