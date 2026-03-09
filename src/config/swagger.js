@@ -1,6 +1,6 @@
-
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const path = require('path');
 
 const options = {
   definition: {
@@ -8,25 +8,32 @@ const options = {
     info: {
       title: 'Orders API',
       version: '1.0.0',
-      description: 'API para gerenciamento de pedidos (challenge técnico)'
+      description: 'API para gerenciamento de pedidos',
     },
+    servers: [
+      {
+        url: 'http://localhost:3000',
+        description: 'Servidor local',
+      },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          bearerFormat: 'JWT'
-        }
-      }
-    }
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
-  apis: ['./src/routes/*.js']
+  apis: [path.join(__dirname, '../routes/*.js')],
 };
 
 const specs = swaggerJsdoc(options);
 
-const swaggerSetup = (app) => {
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
-};
-
-module.exports = swaggerSetup;
+module.exports = specs;
