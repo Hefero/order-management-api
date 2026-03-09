@@ -20,33 +20,70 @@ API REST para gerenciamento de pedidos desenvolvida em Node.js com Express, SQLi
 ## Estrutura do Projeto
 
 ```
-jitterbit-order/
+order-management-api/
 ├── public/
-│   └── index.html              # Front-end (painel de gestão)
+│ └── index.html # Front-end estático (painel de gestão de pedidos)
+│
 ├── src/
-│   ├── config/
-│   │   ├── database.js         # Inicialização do SQLite e criação das tabelas
-│   │   └── swagger.js          # Configuração do OpenAPI/Swagger
-│   ├── controllers/
-│   │   └── orderController.js  # Lógica de negócio dos endpoints
-│   ├── middlewares/
-│   │   └── auth.js             # Validação do token JWT
-│   ├── models/
-│   │   └── orderModel.js       # Queries SQL (transações atômicas, paginação)
-│   ├── routes/
-│   │   ├── authRoutes.js       # POST /auth/token
-│   │   └── orderRoutes.js      # CRUD /order
-│   └── utils/
-│       ├── errors.js           # Classes de erro de domínio (ValidationError)
-│       └── mapper.js           # Transformação de dados (input → banco → response)
-├── server.js                   # Entry point da aplicação
-├── api.test.js                 # Testes de integração (Jest + Supertest)
-├── frontend_test.js            # Testes caixa-preta contra servidor em execução
-├── schema.sql                  # Script SQL de criação das tabelas
-└── package.json
+│ ├── config/
+│ │ ├── database.js # Conexão SQLite e inicialização do banco
+│ │ └── swagger.js # Configuração da documentação Swagger
+│ │
+│ ├── controllers/
+│ │ └── orderController.js # Controladores HTTP (camada entre rotas e serviços)
+│ │
+│ ├── services/
+│ │ └── orderService.js # Regras de negócio da aplicação
+│ │
+│ ├── models/
+│ │ └── orderModel.js # Acesso ao banco e queries SQL
+│ │
+│ ├── routes/
+│ │ ├── authRoutes.js # Rotas de autenticação (/login, /auth/token)
+│ │ └── orderRoutes.js # Rotas CRUD de pedidos (/order)
+│ │
+│ ├── middlewares/
+│ │ ├── auth.js # Middleware de autenticação JWT
+│ │ └── validateOrder.js # Validação do payload de pedidos
+│ │
+│ ├── utils/
+│ │ ├── errors.js # Classes de erro customizadas
+│ │ ├── logger.js # Logger da aplicação
+│ │ └── mapper.js # Transformação JSON ↔ Banco de Dados
+│
+├── server.js # Entry point da aplicação Express
+│
+├── schema.sql # Script de criação das tabelas SQLite
+│
+├── api.test.js # Testes de integração com Jest + Supertest
+├── frontend_test.js # Testes end-to-end via HTTP contra servidor rodando
+│
+├── index_raw.html # Versão original do front-end (referência)
+│
+├── env.example # Exemplo de variáveis de ambiente
+│
+├── package.json # Dependências e scripts do projeto
+└── package-lock.json # Lock de dependências
 ```
 
 ---
+
+### Arquitetura
+
+O projeto segue uma arquitetura em camadas:
+
+Routes → Controllers → Services → Models → Database
+
+- **Routes**: definem os endpoints da API
+- **Controllers**: recebem requisições e retornam respostas HTTP
+- **Services**: implementam regras de negócio
+- **Models**: executam queries SQL
+- **Utils/Middlewares**: suporte (auth, validação, logs, mapping)
+
+Essa separação melhora **manutenção, testabilidade e escalabilidade** da aplicação.
+
+---
+
 
 ## Modelo do Banco de Dados (SQL)
 
